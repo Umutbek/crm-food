@@ -8,7 +8,7 @@ from django.conf import settings
 
 class Role(models.Model):
     """Model for role"""
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200, null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -41,7 +41,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=100)
     surname = models.CharField(max_length=100)
     email = models.EmailField(max_length=100, unique=True)
-    roleid = models.ForeignKey(Role, on_delete=models.CASCADE)
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
