@@ -23,13 +23,6 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         """Return object for the current authenticated user only"""
         return self.queryset.filter(user=self.request.user).order_by('-name')
 
-    def get_serializer_class(self):
-        """Return appropriate serializer class"""
-        if self.action == 'retrieve':
-            return serializers.DepartmentSerializer
-
-        return self.serializer_class
-
     def perform_create(self,serializer):
         """Create a new object"""
         serializer.save(user=self.request.user)
@@ -61,13 +54,6 @@ class MealCategoryViewSet(viewsets.ModelViewSet):
         """Return object for the current authenticated user only"""
         return self.queryset.filter(user=self.request.user).order_by('-name')
 
-    def get_serializer_class(self):
-        """Return appropriate serializer class"""
-        if self.action == 'retrieve':
-            return serializers.MealCategSerializer
-
-        return self.serializer_class
-
     def perform_create(self,serializer):
         """Create a new object"""
         serializer.save(user=self.request.user)
@@ -97,13 +83,6 @@ class MealsViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Return object for the current authenticated user only"""
         return self.queryset.filter(user=self.request.user).order_by('-name')
-
-    def get_serializer_class(self):
-        """Return appropriate serializer class"""
-        if self.action == 'retrieve':
-            return serializers.MealsSerializer
-
-        return self.serializer_class
 
     def perform_create(self,serializer):
         """Create a new object"""
