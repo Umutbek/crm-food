@@ -13,7 +13,7 @@ class TableSerializer(serializers.ModelSerializer):
 
 
 class StatusSerializer(serializers.ModelSerializer):
-    """Serializer for table objects"""
+    """Serializer for Status"""
 
     class Meta:
         model = models.Status
@@ -23,7 +23,7 @@ class StatusSerializer(serializers.ModelSerializer):
 
 
 class ServicePercentageSerializer(serializers.ModelSerializer):
-    """Serializer for table objects"""
+    """Serializer for ServicePercentage"""
 
     class Meta:
         model = models.ServicePercentage
@@ -31,38 +31,72 @@ class ServicePercentageSerializer(serializers.ModelSerializer):
 
         read_only_fields = ('id',)
 
+class OrderedMealsSerializer(serializers.ModelSerializer):
+    """Ordered meals with name and count, Used to get MealsToOrder"""
+    meal = serializers.PrimaryKeyRelatedField(queryset=models.Meal.objects.all())
+    name = serializers.CharField(source='meal.name', read_only=True)
+
+    class Meta:
+        model = models.OrderedMeals
+        fields = ('meal', 'name', 'count')
+
+
 class MealsToOrderSerializer(serializers.ModelSerializer):
-    mealsid = serializers.PrimaryKeyRelatedField(queryset=models.Meal.objects.all(), source='mealsid.id')
-    name = serializers.CharField(source='mealsid.name', read_only=True)
+    """Serializer for MealsToOrder objects"""
+    ordid = serializers.PrimaryKeyRelatedField(queryset= models.Order.objects.all())
+    mealss = OrderedMealsSerializer(many=True)
 
     class Meta:
         model = models.MealsToOrder
-        fields = ('mealsid', 'name', 'count')
+        fields = ('ordid', 'mealss')
 
+    def create(self, validated_data):
+        """create method for Order serializer"""
+        mealss = validated_data.pop("mealss")
+        mealstoorder= models.MealsToOrder.objects.create(**validated_data)
+
+        for m in mealss:
+            models.OrderedMeals.objects.create(mealstoorder=mealstoorder, **m)
+
+        return mealstoorder
 
 class OrderMealSerializer(serializers.ModelSerializer):
+    """Serializer for ordered meals, Used to get Checks"""
     id = serializers.PrimaryKeyRelatedField(queryset=models.Meal.objects.all(), source='meal.id', )
     name = serializers.CharField(source='meal.name', read_only=True)
     price = serializers.CharField(source='meal.price', read_only=True)
     total = serializers.FloatField(source='get_sum', read_only=True)
 
     class Meta:
-        model = models.MealsToOrder
+        model = models.OrderedMeals
         fields = ('id', 'name', 'count', 'price', 'total')
 
 class OrderSerializer(serializers.ModelSerializer):
-    """Serializer for table objects"""
-    mealsid = MealsToOrderSerializer(many=True, required=False, source='orderid')
+    """Serializer for Order"""
     tableid = serializers.PrimaryKeyRelatedField(queryset=models.Table.objects.all())
     tablename = serializers.CharField(source='tableid.name', read_only=True)
+    meals = OrderedMealsSerializer(many=True)
+
     class Meta:
         model = models.Order
-        fields = ('id', 'waiterid', 'tableid', 'tablename', 'date', 'is_open', 'mealsid')
+        fields = ('id', 'waiterid', 'tableid', 'tablename', 'date', 'is_open', 'meals')
 
-        read_only_fields = ('id',)
+        read_only_fields = ('id', 'waiterid', 'is_open')
+
+
+    def create(self, validated_data):
+        """create method for Order serializer"""
+        meals = validated_data.pop("meals")
+        order = models.Order.objects.create(**validated_data)
+
+        for m in meals:
+            models.OrderedMeals.objects.create(order=order, **m)
+
+        return order
 
 
 class CheckMealsSerializer(serializers.ModelSerializer):
+    """Assign ordered meals to meals_order var to get checks"""
     meals_order = OrderMealSerializer(many=True)
 
     class Meta:
@@ -71,12 +105,18 @@ class CheckMealsSerializer(serializers.ModelSerializer):
 
 
 class CheckSerializer(serializers.ModelSerializer):
+    """Serializer for Checks"""
     orderid = serializers.PrimaryKeyRelatedField(queryset= models.Order.objects.all())
-    servicefee = serializers.FloatField(read_only=True)
+    servicefee = serializers.FloatField(source='servicefee.percentage', read_only=True)
     meals = CheckMealsSerializer(many=True, read_only=True)
     totalsum = serializers.FloatField(source='get_total', read_only=True)
 
     class Meta:
         model = models.Checks
-        fields = ['id', 'orderid', 'date', 'servicefee', 'totalsum', 'meals']
-        read_only_fields = ('id',)
+        fields = ['orderid', 'date', 'servicefee', 'totalsum', 'meals']
+
+
+    def create(self, validated_data):
+        """create method for Order serializer"""
+        checks = models.Order.objects.create(**validated_data)
+        return checks

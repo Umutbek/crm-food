@@ -8,11 +8,12 @@ router.register('Table', views.TableViewSet)
 router.register('Status', views.StatusViewSet)
 router.register('ServicePercentage', views.ServicePercentageViewSet)
 router.register('Order', views.OrderViewSet)
+router.register('MealsToOrder', views.MealsToOrderViewSet)
 router.register('Checks', views.ChecksViewSet)
 
 app_name = 'orders'
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('MealsToOrder', views.MealsToOrderListView.as_view()),
+    path('ActiveOrders/', views.ActiveOrdersView.as_view(), name='ActiveOrders')
 ]

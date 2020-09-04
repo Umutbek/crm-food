@@ -135,7 +135,7 @@ class ServicePercentage(models.Model):
         return self.percentage
 
 class Order(models.Model):
-    """Model for Department"""
+    """Model for Order"""
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -143,7 +143,7 @@ class Order(models.Model):
     )
 
     tableid = models.ForeignKey(Table, on_delete=models.CASCADE, blank=True, null=True)
-    waiterid = models.ForeignKey(User, on_delete=models.CASCADE, related_name='order_id', null=True)
+    waiterid = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders', null=True)
     date = models.DateTimeField(auto_now_add=True, null=True)
     is_open = models.BooleanField(default=True)
 
@@ -151,36 +151,46 @@ class Order(models.Model):
         return "{}".format(self.pk)
 
     def get_total_sum(self):
+        """Used to get total sum in checks"""
         return sum(meal.get_sum() for meal in self.meals.all())
 
 
 class MealsToOrder(models.Model):
-    """Model for Department"""
+    """Model for MealsToOrder"""
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         blank=True, null=True
     )
 
+    ordid = models.ForeignKey(Order, on_delete=models.CASCADE, blank=True, null=True)
+
+
+class OrderedMeals(models.Model):
+    """Model for OrderedMeals"""
+
+    mealstoorder = models.ForeignKey(MealsToOrder, related_name='mealss', on_delete=models.CASCADE, blank=True, null=True)
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='meals', blank=True, null=True)
     meal = models.ForeignKey(Meal, on_delete=models.CASCADE, blank=True, null=True)
     count = models.IntegerField(default=1)
 
     def get_sum(self):
+        """Price of all meals, Used to get total sum in checks"""
         return self.count * self.meal.price
 
 
 class Checks(models.Model):
-    """Model for Department"""
+    """Model for Checks"""
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         blank=True, null=True
     )
 
-    orderid = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='orderid', blank=True, null=True)
+    orderid = models.ForeignKey(Order, on_delete=models.CASCADE, blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True, null=True)
-    servicefee = models.ForeignKey(ServicePercentage, related_name='servicefee', on_delete=models.CASCADE, null=True)
+    servicefee = models.ForeignKey(ServicePercentage, on_delete=models.CASCADE, null=True)
 
     def get_total(self):
-        return (self.orderid.get_total_sum())
+        """Get total sum in checks"""
+        return self.orderid.get_total_sum() * (1 + (self.servicefee.percentage / 100))

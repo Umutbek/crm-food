@@ -31,7 +31,7 @@ class TableViewSet(viewsets.ModelViewSet):
 
 
 class StatusViewSet(viewsets.ModelViewSet):
-    """Manage meal category in the db"""
+    """Manage status in the db"""
     queryset = models.Status.objects.all()
     serializer_class = serializers.StatusSerializer
 
@@ -49,7 +49,7 @@ class StatusViewSet(viewsets.ModelViewSet):
 
 
 class ServicePercentageViewSet(viewsets.ModelViewSet):
-    """Manage meals in the db"""
+    """Manage ServicePercentage in the db"""
     serializer_class = serializers.ServicePercentageSerializer
     queryset = models.ServicePercentage.objects.all()
 
@@ -66,7 +66,7 @@ class ServicePercentageViewSet(viewsets.ModelViewSet):
 
 
 class OrderViewSet(viewsets.ModelViewSet):
-    """Manage meal category in the db"""
+    """Manage Orders in the db"""
     queryset = models.Order.objects.all()
     serializer_class = serializers.OrderSerializer
 
@@ -75,18 +75,26 @@ class OrderViewSet(viewsets.ModelViewSet):
 
 
     def get_queryset(self):
-        """Return object for the current authenticated user only"""
+        """Retrieve orders for the current authenticated user only"""
         return self.queryset.filter(user=self.request.user)
 
     def perform_create(self,serializer):
         """Create a new object"""
         serializer.save(user=self.request.user)
 
+class ActiveOrdersView(APIView):
+    """Responsible for listing orders that are active"""
+    def get(self, request):
+        orders = models.Order.objects.filter(is_open=True)
+        serializer = serializers.OrderSerializer(orders, many=True)
+
+        return Response(serializer.data)
+
 
 class ChecksViewSet(viewsets.ModelViewSet):
-    """Manage meals in the db"""
-    serializer_class = serializers.CheckSerializer
+    """Manage Checks in the db"""
     queryset = models.Checks.objects.all()
+    serializer_class = serializers.CheckSerializer
 
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
@@ -99,20 +107,18 @@ class ChecksViewSet(viewsets.ModelViewSet):
         """Create a new object"""
         serializer.save(user=self.request.user)
 
+class MealsToOrderViewSet(viewsets.ModelViewSet):
+    """Manage Meals to order in the db"""
+    queryset = models.MealsToOrder.objects.all()
+    serializer_class = serializers.MealsToOrderSerializer
 
-class MealsToOrderListView(APIView):
-    def get(self, request):
-        order = models.Order.objects.filter(id=request.data['orderid'])
-        serializer = serializers.OrdersSerializer(order, many=True)
-        return Response(serializer.data)
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
-    def post(self, request):
-        order = models.Order.objects.filter(id=request.data['orderid'])
-        data = request.data['meals']
-        meal = models.MealsToOrder.objects.filter(id=data['id'])
-        models.MealsToOrder.objects.create(order=order, meal=meal, count=data['count'])
+    def get_queryset(self):
+        """Return object for the current authenticated user only"""
+        return self.queryset.filter(user=self.request.user)
 
-    def delete(self, request):
-        data = request.data
-        order = models.Order.objects.filter(id=request.data['orderid'])
-        meal = models.Order.objects.filter(id=data['meaidid'])
+    def perform_create(self,serializer):
+        """Create a new object"""
+        serializer.save(user=self.request.user)
